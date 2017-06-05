@@ -45,7 +45,7 @@ function display_lines {
 } 
 
 function display_banner {
-        tput bold
+        # tput bold
         printf "\e[37;44;93m%*s \033[0m\n" $(tput cols) "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
 
@@ -108,7 +108,7 @@ done > ipa_${suffix}
 
 ip r > ipr_${suffix}
 
-iptables-save > iptables-save_${suffix}
+iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
 
 netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g'  > netstat-lnptu_${suffix}
 netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g'  >> netstat-lnptu_${suffix}
@@ -184,6 +184,27 @@ then
     echo
 
     echo -e "\e[4;34m${bold}4) Firewall (local)\033[0m"
+        if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -eq 0 -a $(grep -cvxFf iptables-save_aftermep iptables-save_beforemep) -eq 0 ]
+        then
+                echo -e "\t\033[32mEverything is OK  \033[0m "
+        else
+                echo  -e "\e[101mSomething is wrong\033[0m"
+                echo
+                if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -ne 0 ]
+                then
+                        echo -e "\t\033[31mUnexpected routes:\033[0m "
+                        RES=$(grep -vxFf iptables-save_beforemep iptables-save_aftermep)
+                        display_lines "$RES"
+                        echo ""
+                fi
+                if [ $(grep -cvxFf iptables-save_aftermep iptables-save_beforemep) -ne 0 ]
+                then
+                        echo -e "\t\033[31mMissing rules:\033[0m "
+                        RES1=$(grep -vxFf iptables-save_aftermep iptables-save_beforemep)
+                        display_lines "$RES1"
+                        echo ""
+                fi
+        fi
     echo
 
     echo -e "\e[4;34m${bold}5) Netstat\033[0m"
