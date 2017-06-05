@@ -219,11 +219,11 @@ then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
 		echo  -e "\e[101mSomething is wrong\n\033[0m"
-                echo -e "\t\033[31mMissing processes:\033[0m"
+        echo -e "\t\033[31mMissing processes:\033[0m"
 		RES=$(grep -vxFf ps-ef_aftermep ps-ef_beforemep)
-                echo -e "\tUID CMD"
-                display_lines "$RES"
-                echo ""
+        echo -e "\tUID CMD"
+        display_lines "$RES"
+        echo ""
 	fi
 	
 fi
