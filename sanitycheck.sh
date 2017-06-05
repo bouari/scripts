@@ -12,9 +12,7 @@ scriptexec=$(basename "$0")
 suffix=""
 
 [ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
-
 [ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
-
 [ -z "$suffix" ] && exit 1
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
@@ -43,10 +41,8 @@ function display_lines {
 } 
 
 function display_banner {
-        #echo -e "\e[37;44m"
         tput bold
         printf "\e[37;44;93m%*s \033[0m\n" $(tput cols) "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
-        ##echo -e "\033[0m"
 }
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
@@ -132,7 +128,7 @@ then
 
 	display_banner
 
-        echo -e "\e[4;34m${bold}1) Services\033[0m"
+    echo -e "\e[4;34m${bold}1) Services\033[0m"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
@@ -141,10 +137,9 @@ then
         	RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_aftermep)
 		echo -e "\033[31m$RES\033[0m "
 	fi
+    echo
 
-        echo
-
-        echo -e "\e[4;34m${bold}2) Network interfaces\033[0m"
+    echo -e "\e[4;34m${bold}2) Network interfaces\033[0m"
 	if [ $(grep -cvxFf ipa_beforemep ipa_aftermep) -eq 0 -a $(grep -cvxFf ipa_aftermep ipa_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
@@ -156,10 +151,9 @@ then
 		echo  -e "\033[31;5;7m\nIt was\033[0m"
 		echo -e "\033[33m$RES1\033[0m "
 	fi
+    echo
 
-        echo
-
-        echo -e "\e[4;34m${bold}3) Routes\033[0m"
+    echo -e "\e[4;34m${bold}3) Routes\033[0m"
 	if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -eq 0 -a $(grep -cvxFf ipr_aftermep ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
@@ -180,12 +174,12 @@ then
 			echo ""
 		fi
 	fi
-        echo
+    echo
 
-        echo -e "\e[4;34m${bold}4) Firewall (local)\033[0m"
-        echo
+    echo -e "\e[4;34m${bold}4) Firewall (local)\033[0m"
+    echo
 
-        echo -e "\e[4;34m${bold}5) Netstat\033[0m"
+    echo -e "\e[4;34m${bold}5) Netstat\033[0m"
 	if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
@@ -197,9 +191,9 @@ then
 		display_lines "$RES"
 		echo ""
 	fi
-        echo
+    echo
 
-        echo -e "\e[4;34m${bold}6) Filesystems\033[0m"	
+    echo -e "\e[4;34m${bold}6) Filesystems\033[0m"	
 	if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
@@ -211,7 +205,7 @@ then
 		display_lines "$RES"
 		echo ""
 	fi
-        echo
+    echo
 
 	echo -e "\e[4;34m${bold}7) Snapshot of the processes\033[0m"
 	if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -eq 0 ]
