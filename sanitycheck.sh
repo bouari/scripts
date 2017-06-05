@@ -5,8 +5,11 @@ if [ $quisuisje != "root" -a $(sudo -l | grep -c "(ALL) NOPASSWD: ALL") -eq 0 ]
 then
 	echo -e "\033[33mTu n'as pas les permissions pour execter ce programme\033[0m "
 	exit1 
+else
+	USER=$(who am i | awk '{print $1}')
+	HOMEUSER=$(getent passwd boualem.ouari | awk -F: '{ print $6 }')
 fi
-	
+
 scriptexec=$(basename "$0")
 
 suffix=""
@@ -17,16 +20,16 @@ suffix=""
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
 then
-	if [ ! -d MEP_`date +"%Y%m%d"` -o $(find MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
+	if [ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` -o $(find $HOMEUSER/MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
 	then
 		echo -e "\033[31mNo inventory found\033[0m\n"
 		exit 1
 	fi
 fi
 
-[ ! -d MEP_`date +"%Y%m%d"` ] && mkdir MEP_`date +"%Y%m%d"`
+[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir $HOMEUSER/MEP_`date +"%Y%m%d"`
 
-cd MEP_`date +"%Y%m%d"` || exit 1
+cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -133,7 +136,8 @@ then
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
         	RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_aftermep)
 		echo -e "\033[31m$RES\033[0m "
 	fi
@@ -144,7 +148,8 @@ then
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
 		RES=$(grep -vxFf ipa_beforemep ipa_aftermep)
 		RES1=$(grep -vxFf ipa_aftermep ipa_beforemep)
 		echo -e "\033[31m$RES\033[0m "
@@ -158,7 +163,8 @@ then
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
 		if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -ne 0 ]
 		then
 			echo -e "\t\033[31mUnexpected routes:\033[0m "
@@ -184,7 +190,8 @@ then
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
 		echo -e "\t\033[31mMissing tcp/udp sockets:\033[0m "
 		RES=$(grep -vxFf netstat-lnptu_aftermep netstat-lnptu_beforemep)
 		echo -e "\tProto Local_address Foreign_address Program_name"
@@ -198,7 +205,8 @@ then
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
 		echo -e "\t\033[31mMissing filesystem:\033[0m"
 		echo -e "\tFilesystem Type Size Mount_point"
 		RES=$(grep -vxFf mountedfs_aftermep mountedfs_beforemep)
@@ -212,7 +220,8 @@ then
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
-		echo  -e "\e[101mSomething is wrong\n\033[0m"
+		echo  -e "\e[101mSomething is wrong\033[0m"
+		echo
         echo -e "\t\033[31mMissing processes:\033[0m"
 		RES=$(grep -vxFf ps-ef_aftermep ps-ef_beforemep)
         echo -e "\tUID CMD"
