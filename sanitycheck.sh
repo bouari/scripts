@@ -7,7 +7,7 @@ then
 	exit1 
 else
 	USER=$(who am i | awk '{print $1}')
-	HOMEUSER=$(getent passwd boualem.ouari | awk -F: '{ print $6 }')
+	HOMEUSER=$(getent passwd $USER | awk -F: '{ print $6 }')
 fi
 
 scriptexec=$(basename "$0")
@@ -34,7 +34,8 @@ cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
 bold=$(tput bold)
 normal=$(tput sgr0)
 COLS=$(tput cols)
-tabs 4
+## la commande tabs necessite ncurse
+##tabs 4
 
 function display_lines {
 	for ligne in $(echo -n "$1")
