@@ -7,8 +7,6 @@ then
 	exit1 
 fi
 	
-
-
 scriptexec=$(basename "$0")
 
 suffix=""
@@ -31,7 +29,6 @@ fi
 [ ! -d MEP_`date +"%Y%m%d"` ] && mkdir MEP_`date +"%Y%m%d"`
 
 cd MEP_`date +"%Y%m%d"` || exit 1
-
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -61,11 +58,9 @@ then
         fi
 fi
 
- 
-
 ## Liste des service running
 
-##if grep --quiet "Red Hat Enterprise Linux Server release 7" /etc/*-release
+#if grep --quiet "Red Hat Enterprise Linux Server release 7" /etc/*-release
 if grep --quiet "release 7" /etc/*-release
 then
         ##systemctl list-units --type service | grep running
@@ -85,8 +80,6 @@ else
 
 fi > stdr-services-status_${suffix}
 
- 
-
 ## Traitements speciaux
 
 # Nimsoft
@@ -104,7 +97,6 @@ fi
 
 ## Prendre les versions des package avant la MEP
 rpm -qa > rpm-qa_${suffix}
-
 
 ## Prendre la configuration réseau "live"
 
