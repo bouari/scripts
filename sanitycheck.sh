@@ -1,4 +1,8 @@
 #! /bin/bash
+#
+# Tests de non-regression  
+# Author: Copyright © Bell Canada - Boualem Ouari <boualem.ouari@bell.ca>, Juin 2017
+#
 
 quisuisje=$(whoami)
 if [ $quisuisje != "root" -a $(sudo -l | grep -c "(ALL) NOPASSWD: ALL") -eq 0 ]
