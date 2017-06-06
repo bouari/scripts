@@ -46,7 +46,7 @@ function display_lines {
 
 function display_banner {
         # tput bold
-        printf "\e[37;44;93m%*s \033[0m\n" $(tput cols) "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
+        printf "\e[37;44;93m%*s \033[0m\n" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
@@ -64,7 +64,7 @@ fi
 if grep --quiet "release 7" /etc/*-release
 then
         ##systemctl list-units --type service | grep running
-        systemctl list-units --type service --all 2>/dev/null
+        systemctl list-units --type service --all 2>/dev/null | grep -v "loaded units listed."
 else
         for i in $(chkconfig --list | grep ^[aA-zZ] | grep -v "Makefile" | awk '{ print $1 }' )
         do
@@ -72,9 +72,9 @@ else
                 STATUS=$(echo $RESULT|grep -c "running")
                 if [ "$STATUS" -ne 0 ]
                 then
-	                echo -e "$i \033[32mis running\033[0m"
+	                echo -e "\033[32${i}mis running\033[0m"
                 else
-                        echo -e "$i \033[31mis not running\033[0m"
+                        echo -e "\033[31${i}mis not running\033[0m"
                 fi
         done
 
@@ -90,7 +90,9 @@ if [ "$NIMSOFT" -gt 0 ]
 then
         echo -e "nimbus \033[32mis running\033[0m" >> stdr-services-status_${suffix}
 else
-        ##echo -e "\033[31Attention nimsof mis not running\033[0m"
+	mess="Nimsof is not running"
+	printf "\e[31m${bold}%*s\033[0m\n" $(((8+$COLS)/2)) "Warning:" 
+	printf "\e[31m${bold}%*s\033[0m\n" $(((${#mess}+$COLS)/2)) "$mess" 
         echo -e "nimbus \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
 fi
 
@@ -110,15 +112,15 @@ ip r > ipr_${suffix}
 
 iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
 
-netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g'  > netstat-lnptu_${suffix}
-netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g'  >> netstat-lnptu_${suffix}
+netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sort | uniq  > netstat-lnptu_${suffix}
+netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sort | uniq >> netstat-lnptu_${suffix}
 
 # Prendre l'état des filesystems
 df -hTP -x tmpfs -x devtmpfs | awk '{ print $1,$2,$3,$7 }' > mountedfs_${suffix}
 
 ## Les process
 ##ps -ef | egrep -v "\[.*\]" | awk '{ print $1,$8 }' | egrep -v "bash"  > ps-ef_${suffix}
-ps -eo 'tty,user,comm' | grep ^? | grep -v [k]worker | awk '{ print $2,$3 }' > ps-ef_${suffix}
+ps -eo 'tty,user,comm' | grep ^? | grep -v [k]worker | awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -ge 8 ]
 then
@@ -133,14 +135,19 @@ then
 	display_banner
 
     echo -e "\e[4;34m${bold}1) Services\033[0m"
-	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -eq 0 ]
+	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -eq 0 -a $NIMSOFT -ne 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-        	RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_aftermep)
-		echo -e "\033[31m$RES\033[0m "
+		### [ $NIMSOFT -eq 0 ] && echo -e "\033[31m  nimbus is not running\033[0m"
+		[ $NIMSOFT -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_aftermep)"
+		if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -ne 0 ]
+		then
+        		RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_aftermep)
+			echo -e "\033[31m$RES\033[0m "
+		fi
 	fi
     echo
 
@@ -192,7 +199,7 @@ then
                 echo
                 if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -ne 0 ]
                 then
-                        echo -e "\t\033[31mUnexpected routes:\033[0m "
+                        echo -e "\t\033[31mUnexpected rules:\033[0m "
                         RES=$(grep -vxFf iptables-save_beforemep iptables-save_aftermep)
                         display_lines "$RES"
                         echo ""
@@ -208,47 +215,80 @@ then
     echo
 
     echo -e "\e[4;34m${bold}5) Netstat\033[0m"
-	if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -eq 0 ]
+	if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_aftermep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		echo -e "\t\033[31mMissing tcp/udp sockets:\033[0m "
-		RES=$(grep -vxFf netstat-lnptu_aftermep netstat-lnptu_beforemep)
-		echo -e "\tProto Local_address Foreign_address Program_name"
-		display_lines "$RES"
-		echo ""
+		if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -ne 0 ]
+		then
+			echo -e "\t\033[31mMissing tcp/udp sockets:\033[0m "
+			RES=$(grep -vxFf netstat-lnptu_aftermep netstat-lnptu_beforemep)
+			echo -e "\tProto Local_address Foreign_address Program_name"
+			display_lines "$RES"
+			echo ""
+		fi
+		if [ $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_aftermep) -ne 0 ]
+		then
+			echo -e "\t\033[31mUnexpected tcp/udp sockets:\033[0m "
+                        RES1=$(grep -vxFf netstat-lnptu_beforemep netstat-lnptu_aftermep)
+                        echo -e "\tProto Local_address Foreign_address Program_name"
+                        display_lines "$RES1"
+                        echo ""
+		fi
 	fi
     echo
 
     echo -e "\e[4;34m${bold}6) Filesystems\033[0m"	
-	if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -eq 0 ]
+	if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_aftermep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		echo -e "\t\033[31mMissing filesystem:\033[0m"
-		echo -e "\tFilesystem Type Size Mount_point"
-		RES=$(grep -vxFf mountedfs_aftermep mountedfs_beforemep)
-		display_lines "$RES"
-		echo ""
+		if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -ne 0 ]
+		then
+			echo -e "\t\033[31mMissing filesystems:\033[0m"
+			echo -e "\tFilesystem Type Size Mount_point"
+			RES=$(grep -vxFf mountedfs_aftermep mountedfs_beforemep)
+			display_lines "$RES"
+			echo ""
+		fi
+		if [ $(grep -cvxFf mountedfs_beforemep mountedfs_aftermep) -ne 0 ]
+		then 
+                        echo -e "\t\033[31mUnexpected filesystems:\033[0m"
+                        echo -e "\tFilesystem Type Size Mount_point"
+                        RES1=$(grep -vxFf mountedfs_beforemep mountedfs_aftermep)
+                        display_lines "$RES1"
+                        echo ""
+                fi
 	fi
     echo
 
 	echo -e "\e[4;34m${bold}7) Snapshot of the processes\033[0m"
-	if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -eq 0 ]
+	if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_aftermep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-        echo -e "\t\033[31mMissing processes:\033[0m"
-		RES=$(grep -vxFf ps-ef_aftermep ps-ef_beforemep)
-        echo -e "\tUID CMD"
-        display_lines "$RES"
-        echo ""
+		if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -ne 0 ]
+		then
+	        	echo -e "\t\033[31mMissing processes:\033[0m"
+			RES=$(grep -vxFf ps-ef_aftermep ps-ef_beforemep)
+		        echo -e "\tUID CMD"
+		        display_lines "$RES"
+		        echo ""
+		fi
+		if [ $(grep -cvxFf ps-ef_beforemep ps-ef_aftermep) -ne 0 ]
+		then
+			echo -e "\t\033[31mUnexpected processes:\033[0m"
+			RES1=$(grep -vxFf ps-ef_beforemep ps-ef_aftermep)
+			echo -e "\tUID CMD"
+                        display_lines "$RES1"
+                        echo ""
+		fi
 	fi
 	
 fi
