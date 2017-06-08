@@ -129,7 +129,7 @@ ps --ppid 2 -p 2 --deselect -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -ge 8 ]
 then
-	echo -e "\033[32mThe invetory is taken\033[0m"
+	echo -e "\033[32mThe inventory is taken\033[0m"
 fi
 
 
