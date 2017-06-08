@@ -132,7 +132,6 @@ then
 	echo -e "\033[32mThe inventory is taken\033[0m"
 fi
 
-
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
 then
 	IFS=$'\n'
