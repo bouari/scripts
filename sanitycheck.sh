@@ -70,7 +70,7 @@ then
         ##systemctl list-units --type service | grep running
         systemctl list-units --type service --all 2>/dev/null | grep -v "loaded units listed."
 else
-        for i in $(chkconfig --list | grep ^[aA-zZ] | grep -v "Makefile" | awk '{ print $1 }' )
+        for i in $(chkconfig --list | grep "^[[:alpha:]]" | grep -v "Makefile" | awk '{ print $1 }' )
         do
                 RESULT=$(/etc/init.d/$i status 2>/dev/null)
                 STATUS=$(echo $RESULT|grep -c "running")
