@@ -115,9 +115,16 @@ done > ipa_${suffix}
 ip r > ipr_${suffix}
 
 iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
-
-netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sort | uniq  > netstat-lnptu_${suffix}
-netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sort | uniq >> netstat-lnptu_${suffix}
+if [ -s /etc/oratab ]
+then
+	oracle_sids=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| tr "\n" "|" | sed 's/|$//')
+	oracle_sids_short=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| sed -r 's|(....).*|\1|' | tr "\n" "|" | sed 's/|$//')
+	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/nimbus\(.*/nimbus/' |  grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/nimbus\(.*/nimbus/' |grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+else
+	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/nimbus\(.*/nimbus/'| grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/nimbus\(.*/nimbus/'| grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+fi
 
 # Prendre l'état des filesystems
 df -hTP -x tmpfs -x devtmpfs | awk '{ print $1,$2,$3,$7 }' > mountedfs_${suffix}
@@ -125,7 +132,8 @@ df -hTP -x tmpfs -x devtmpfs | awk '{ print $1,$2,$3,$7 }' > mountedfs_${suffix}
 ## Les process
 ##ps -ef | egrep -v "\[.*\]" | awk '{ print $1,$8 }' | egrep -v "bash"  > ps-ef_${suffix}
 ##ps -eo 'tty,user,comm' | grep ^? | grep -v [k]worker | awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
-ps --ppid 2 -p 2 --deselect -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
+##ps --ppid 2 -p 2 --deselect -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
+ps --ppid 1 -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -ge 8 ]
 then
