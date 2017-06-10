@@ -7,7 +7,7 @@
 quisuisje=$(whoami)
 if [ $quisuisje != "root" -a $(sudo -l | grep -c "(ALL) NOPASSWD: ALL") -eq 0 ]
 then
-	echo -e "\033[33mTu n'as pas les permissions pour execter ce programme\033[0m "
+	echo -e "\033[33mTu n'as pas les permissions pour executer ce programme\033[0m "
 	exit1 
 else
 	USER=$(who am i | awk '{print $1}')
@@ -115,7 +115,7 @@ done > ipa_${suffix}
 ip r > ipr_${suffix}
 
 iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
-if [ -s /etc/oratab ]
+if [ -s /etc/oratab -a $(egrep -v "^#|^$" /etc/oratab|wc -l) -ne 0 ]
 then
 	oracle_sids=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| tr "\n" "|" | sed 's/|$//')
 	oracle_sids_short=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| sed -r 's|(....).*|\1|' | tr "\n" "|" | sed 's/|$//')
