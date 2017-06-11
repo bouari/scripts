@@ -113,25 +113,18 @@ fi > stdr-services-status_${suffix}
 
 MONITPROC=$(ps -ef | grep -v grep | grep -c "${MonitoringProc}")
 
-#echo -n "${TC_WITHE}"
-#echo -e "\n           ABC${CLREOL}\n"
-#echo -e "\n              DEFG${CLREOL}\n"
-#echo ${TC_RESET}
-
+display_banner
+echo
 if [ "$MONITPROC" -gt 0 ]
 then
-        echo -e "$MonitoringName \033[32mis running\033[0m" >> stdr-services-status_${suffix}
+        echo -e "$MonitoringProc \033[32mis running\033[0m" >> stdr-services-status_${suffix}
 else
 	echo -n "${TC_WITHE}"
 	mess="$MonitoringName is not running"
-	#printf "\e[31m${bold}%*s\n" $(((8+$COLS)/2)) "Warning:" 
-	#printf "\e[31m${bold}%*s\n" $(((${#mess}+$COLS)/2)) "$mess" 
-	#printf "\e[31m${bold}%+*s\n" $COLS "Warning:" 
-	#printf "\e[31m${bold}%+*s\n" $COLS "$mess" 
-	center "Warning:"
+	center "Warning"
 	center "$mess"
 	echo ${TC_RESET}
-        #echo -e "$MonitoringName \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
+
         echo -e "$MonitoringProc \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
 fi
 
@@ -179,8 +172,6 @@ if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck
 then
 	IFS=$'\n'
 
-	display_banner
-	echo
 	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
