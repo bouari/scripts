@@ -24,7 +24,8 @@ bold=$(tput bold)
 normal=$(tput sgr0)
 COLS=$(tput cols)
 TC_RESET=$'\e[0m'
-TC_WITHE=$'\e[0;107;31m'
+#TC_WITHE=$'\e[0;107;31m'
+TC_WITHE=$'\e[0;47;31m'
 
 ## la commande tabs necessite ncurse
 ##tabs 4
