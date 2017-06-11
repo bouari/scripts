@@ -18,23 +18,6 @@ scriptexec=$(basename "$0")
 
 suffix=""
 
-[ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
-[ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
-[ -z "$suffix" ] && exit 1
-
-if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
-then
-	if [ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` -o $(find $HOMEUSER/MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
-	then
-		echo -e "\033[31mNo inventory found\033[0m\n"
-		exit 1
-	fi
-fi
-
-[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir $HOMEUSER/MEP_`date +"%Y%m%d"`
-
-cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
-
 bold=$(tput bold)
 normal=$(tput sgr0)
 COLS=$(tput cols)
@@ -52,6 +35,36 @@ function display_banner {
         # tput bold
         printf "\e[37;44;93m%*s \033[0m\n" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
+
+
+[ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
+[ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
+[ "$scriptexec" == "sanitycheck-afterreboot.sh" ] && suffix="afterreboot"
+
+
+if [ -z "$suffix" ] 
+then
+	display_banner
+	echo -e "\e[34m${bold}Usage:\033[0m"
+	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-beforemep.sh" "For taking inventory before making change or rebooting"
+	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-afterreboot.sh" "After rebooting without making changes"
+	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-aftermep.sh" "After making change and rebooting"
+	exit 1
+fi
+
+if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
+then
+	if [ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` -o $(find $HOMEUSER/MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
+	then
+		echo -e "\033[31mNo inventory found\033[0m\n"
+		exit 1
+	fi
+fi
+
+[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir $HOMEUSER/MEP_`date +"%Y%m%d"`
+
+cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
+
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
 then
@@ -115,7 +128,7 @@ done > ipa_${suffix}
 ip r > ipr_${suffix}
 
 iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
-if [ -s /etc/oratab -a $(egrep -v "^#|^$" /etc/oratab|wc -l) -ne 0 ]
+if [ -s /etc/oratab ] 
 then
 	oracle_sids=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| tr "\n" "|" | sed 's/|$//')
 	oracle_sids_short=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| sed -r 's|(....).*|\1|' | tr "\n" "|" | sed 's/|$//')
@@ -185,18 +198,18 @@ then
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -ne 0 ]
-		then
-			echo -e "\t\033[31mUnexpected routes:\033[0m "
-			RES=$(grep -vxFf ipr_beforemep ipr_aftermep)
-			display_lines "$RES"
-			echo ""
-		fi
 		if [ $(grep -cvxFf ipr_aftermep ipr_beforemep) -ne 0 ]
 		then
 			echo -e "\t\033[31mMissing routes:\033[0m "
 			RES1=$(grep -vxFf ipr_aftermep ipr_beforemep)
 			display_lines "$RES1"
+			echo ""
+		fi
+		if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -ne 0 ]
+		then
+			echo -e "\t\033[31mUnexpected routes:\033[0m "
+			RES=$(grep -vxFf ipr_beforemep ipr_aftermep)
+			display_lines "$RES"
 			echo ""
 		fi
 	fi
@@ -209,18 +222,18 @@ then
         else
                 echo  -e "\e[101mSomething is wrong\033[0m"
                 echo
-                if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -ne 0 ]
-                then
-                        echo -e "\t\033[31mUnexpected rules:\033[0m "
-                        RES=$(grep -vxFf iptables-save_beforemep iptables-save_aftermep)
-                        display_lines "$RES"
-                        echo ""
-                fi
                 if [ $(grep -cvxFf iptables-save_aftermep iptables-save_beforemep) -ne 0 ]
                 then
                         echo -e "\t\033[31mMissing rules:\033[0m "
                         RES1=$(grep -vxFf iptables-save_aftermep iptables-save_beforemep)
                         display_lines "$RES1"
+                        echo ""
+                fi
+                if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -ne 0 ]
+                then
+                        echo -e "\t\033[31mUnexpected rules:\033[0m "
+                        RES=$(grep -vxFf iptables-save_beforemep iptables-save_aftermep)
+                        display_lines "$RES"
                         echo ""
                 fi
         fi
