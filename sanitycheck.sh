@@ -23,6 +23,9 @@ MonitoringProc="nimbus"
 bold=$(tput bold)
 normal=$(tput sgr0)
 COLS=$(tput cols)
+TC_RESET=$'\e[0m'
+TC_WITHE=$'\e[0;107;31m'
+
 ## la commande tabs necessite ncurse
 ##tabs 4
 
@@ -38,6 +41,10 @@ function display_banner {
         printf "\e[37;44;93m%*s \033[0m\n" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
 
+center() {
+  padding="$(printf '%0.1s' \ {1..500})"
+  printf '%*.*s %s %*.*s\n' 0 "$(((COLS-2-${#1})/2))" "$padding" "$1" 0 "$(((COLS-1-${#1})/2))" "$padding"
+}
 
 [ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
 [ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
@@ -106,13 +113,24 @@ fi > stdr-services-status_${suffix}
 
 MONITPROC=$(ps -ef | grep -v grep | grep -c "${MonitoringProc}")
 
+#echo -n "${TC_WITHE}"
+#echo -e "\n           ABC${CLREOL}\n"
+#echo -e "\n              DEFG${CLREOL}\n"
+#echo ${TC_RESET}
+
 if [ "$MONITPROC" -gt 0 ]
 then
         echo -e "$MonitoringName \033[32mis running\033[0m" >> stdr-services-status_${suffix}
 else
+	echo -n "${TC_WITHE}"
 	mess="$MonitoringName is not running"
-	printf "\e[31m${bold}%*s\033[0m\n" $(((8+$COLS)/2)) "Warning:" 
-	printf "\e[31m${bold}%*s\033[0m\n" $(((${#mess}+$COLS)/2)) "$mess" 
+	#printf "\e[31m${bold}%*s\n" $(((8+$COLS)/2)) "Warning:" 
+	#printf "\e[31m${bold}%*s\n" $(((${#mess}+$COLS)/2)) "$mess" 
+	#printf "\e[31m${bold}%+*s\n" $COLS "Warning:" 
+	#printf "\e[31m${bold}%+*s\n" $COLS "$mess" 
+	center "Warning:"
+	center "$mess"
+	echo ${TC_RESET}
         #echo -e "$MonitoringName \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
         echo -e "$MonitoringProc \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
 fi
