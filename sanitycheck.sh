@@ -144,15 +144,17 @@ done > ipa_${suffix}
 ip r > ipr_${suffix}
 
 iptables-save | sed -r 's/\[[0-9]+:[0-9]+\]/\[0:0\]/g' | grep -v "^#" > iptables-save_${suffix}
+## Certains daemons ecoutent sur des ports supplementaire aleatoires. 
+prog_randome_port="dhclient|rpcbind"
 if [ -s /etc/oratab ] 
 then
 	oracle_sids=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| tr "\n" "|" | sed 's/|$//')
 	oracle_sids_short=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| sed -r 's|(....).*|\1|' | tr "\n" "|" | sed 's/|$//')
-	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |  grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
-	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+	netstat -lnpu | egrep -v "$prog_randome_port" | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |  grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | egrep -v "$prog_randome_port" | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
 else
-	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
-	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+	netstat -lnpu | egrep -v "$prog_randome_port" | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | egrep -v "$prog_randome_port" | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
 fi
 
 # Prendre l'état des filesystems
@@ -173,13 +175,12 @@ if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck
 then
 	IFS=$'\n'
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "1) Services"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		##echo  -e "\e[101mSomething is wrong\033[0m"
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		### [ $MONITPROC -eq 0 ] && echo -e "\033[31m  $MonitoringName is not running\033[0m"
 		[ $MONITPROC -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_${suffix})"
@@ -191,12 +192,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "2) Network interfaces"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "2) Network interfaces"
 	if [ $(grep -cvxFf ipa_beforemep ipa_${suffix}) -eq 0 -a $(grep -cvxFf ipa_${suffix} ipa_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		RES=$(grep -vxFf ipa_beforemep ipa_${suffix})
 		RES1=$(grep -vxFf ipa_${suffix} ipa_beforemep)
@@ -206,12 +207,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "3) Routes"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "3) Routes"
 	if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -eq 0 -a $(grep -cvxFf ipr_${suffix} ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ipr_${suffix} ipr_beforemep) -ne 0 ]
 		then
@@ -230,12 +231,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "4) Firewall (firewalld/iptables)"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "4) Firewall (firewalld/iptables)"
         if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -eq 0 -a $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
                 echo
                 if [ $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -ne 0 ]
                 then
@@ -254,12 +255,12 @@ then
         fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "5) TCP/UDP listening sockets (netstat)"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "5) TCP/UDP listening sockets (netstat)"
 	if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -ne 0 ]
 		then
@@ -280,12 +281,12 @@ then
 	fi
    	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "6) Filesystems"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "6) Filesystems"
 	if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -ne 0 ]
 		then
@@ -306,12 +307,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "7) Daemons process"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "7) Daemons process"
 	if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -ne 0 ]
 		then
