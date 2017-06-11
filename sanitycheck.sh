@@ -5,18 +5,20 @@
 #
 
 quisuisje=$(whoami)
-if [ $quisuisje != "root" -a $(sudo -l | grep -c "(ALL) NOPASSWD: ALL") -eq 0 ]
+if [ $quisuisje != "root" ]
 then
 	echo -e "\033[33mTu n'as pas les permissions pour executer ce programme\033[0m "
 	exit1 
-else
-	USER=$(who am i | awk '{print $1}')
-	HOMEUSER=$(getent passwd $USER | awk -F: '{ print $6 }')
+	
 fi
+
+HOMEUSER="/home/sysadmin"
 
 scriptexec=$(basename "$0")
 
 suffix=""
+MonitoringName="Nimsoft"
+MonitoringProc="nimbus"
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -52,7 +54,7 @@ then
 	exit 1
 fi
 
-if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
+if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
 then
 	if [ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` -o $(find $HOMEUSER/MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
 	then
@@ -61,7 +63,7 @@ then
 	fi
 fi
 
-[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir $HOMEUSER/MEP_`date +"%Y%m%d"`
+[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir -p $HOMEUSER/MEP_`date +"%Y%m%d"`
 
 cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
 
@@ -101,16 +103,17 @@ fi > stdr-services-status_${suffix}
 
 # Nimsoft
 
-NIMSOFT=$(ps -ef | grep -c "[n]imbus")
+MONITPROC=$(ps -ef | grep -v grep | grep -c "${MonitoringProc}")
 
-if [ "$NIMSOFT" -gt 0 ]
+if [ "$MONITPROC" -gt 0 ]
 then
-        echo -e "nimbus \033[32mis running\033[0m" >> stdr-services-status_${suffix}
+        echo -e "$MonitoringName \033[32mis running\033[0m" >> stdr-services-status_${suffix}
 else
-	mess="Nimsof is not running"
+	mess="$MonitoringName is not running"
 	printf "\e[31m${bold}%*s\033[0m\n" $(((8+$COLS)/2)) "Warning:" 
 	printf "\e[31m${bold}%*s\033[0m\n" $(((${#mess}+$COLS)/2)) "$mess" 
-        echo -e "nimbus \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
+        #echo -e "$MonitoringName \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
+        echo -e "$MonitoringProc \033[31mis not running\033[0m" >> stdr-services-status_${suffix}
 fi
 
 
@@ -132,11 +135,11 @@ if [ -s /etc/oratab ]
 then
 	oracle_sids=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| tr "\n" "|" | sed 's/|$//')
 	oracle_sids_short=$(egrep -v "^#|^$" /etc/oratab|awk -F: '{ print $1 }'| sed -r 's|(....).*|\1|' | tr "\n" "|" | sed 's/|$//')
-	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/nimbus\(.*/nimbus/' |  grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
-	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/nimbus\(.*/nimbus/' |grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |  grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | egrep -v "oracle|$oracle_sids|$oracle_sids_short" | sed -r 's/$MonitoringName\(.*/$MonitoringName/' |grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
 else
-	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/nimbus\(.*/nimbus/'| grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
-	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/nimbus\(.*/nimbus/'| grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
+	netstat -lnpu | tail -n +3 | awk '{ print $1,$4,$5,$6 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq  > netstat-lnptu_${suffix}
+	netstat -lnpt | tail -n +3 | awk '{ print $1,$4,$5,$7 }' | sed -r -e 's| [0-9]+/| |' -e 's/[[:space:]]+/ /g' | sed -r 's/$MonitoringName\(.*/$MonitoringName/'| grep -v "cmahostd" | sort | uniq >> netstat-lnptu_${suffix}
 fi
 
 # Prendre l'état des filesystems
@@ -153,38 +156,38 @@ then
 	echo -e "\033[32mThe inventory is taken\033[0m"
 fi
 
-if [ "$scriptexec" == "sanitycheck-aftermep.sh" ]
+if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
 then
 	IFS=$'\n'
 
 	display_banner
 
     echo -e "\e[4;34m${bold}1) Services\033[0m"
-	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -eq 0 -a $NIMSOFT -ne 0 ]
+	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		### [ $NIMSOFT -eq 0 ] && echo -e "\033[31m  nimbus is not running\033[0m"
-		[ $NIMSOFT -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_aftermep)"
-		if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_aftermep) -ne 0 ]
+		### [ $MONITPROC -eq 0 ] && echo -e "\033[31m  $MonitoringName is not running\033[0m"
+		[ $MONITPROC -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_${suffix})"
+		if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -ne 0 ]
 		then
-        		RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_aftermep)
+        		RES=$(grep -vxFf stdr-services-status_beforemep stdr-services-status_${suffix})
 			echo -e "\033[31m$RES\033[0m "
 		fi
 	fi
     echo
 
     echo -e "\e[4;34m${bold}2) Network interfaces\033[0m"
-	if [ $(grep -cvxFf ipa_beforemep ipa_aftermep) -eq 0 -a $(grep -cvxFf ipa_aftermep ipa_beforemep) -eq 0 ]
+	if [ $(grep -cvxFf ipa_beforemep ipa_${suffix}) -eq 0 -a $(grep -cvxFf ipa_${suffix} ipa_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		RES=$(grep -vxFf ipa_beforemep ipa_aftermep)
-		RES1=$(grep -vxFf ipa_aftermep ipa_beforemep)
+		RES=$(grep -vxFf ipa_beforemep ipa_${suffix})
+		RES1=$(grep -vxFf ipa_${suffix} ipa_beforemep)
 		echo -e "\033[31m$RES\033[0m "
 		echo  -e "\033[31;5;7m\nIt was\033[0m"
 		echo -e "\033[33m$RES1\033[0m "
@@ -192,23 +195,23 @@ then
     echo
 
     echo -e "\e[4;34m${bold}3) Routes\033[0m"
-	if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -eq 0 -a $(grep -cvxFf ipr_aftermep ipr_beforemep) -eq 0 ]
+	if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -eq 0 -a $(grep -cvxFf ipr_${suffix} ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		if [ $(grep -cvxFf ipr_aftermep ipr_beforemep) -ne 0 ]
+		if [ $(grep -cvxFf ipr_${suffix} ipr_beforemep) -ne 0 ]
 		then
 			echo -e "\t\033[31mMissing routes:\033[0m "
-			RES1=$(grep -vxFf ipr_aftermep ipr_beforemep)
+			RES1=$(grep -vxFf ipr_${suffix} ipr_beforemep)
 			display_lines "$RES1"
 			echo ""
 		fi
-		if [ $(grep -cvxFf ipr_beforemep ipr_aftermep) -ne 0 ]
+		if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -ne 0 ]
 		then
 			echo -e "\t\033[31mUnexpected routes:\033[0m "
-			RES=$(grep -vxFf ipr_beforemep ipr_aftermep)
+			RES=$(grep -vxFf ipr_beforemep ipr_${suffix})
 			display_lines "$RES"
 			echo ""
 		fi
@@ -216,23 +219,23 @@ then
     echo
 
     echo -e "\e[4;34m${bold}4) Firewall (local)\033[0m"
-        if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -eq 0 -a $(grep -cvxFf iptables-save_aftermep iptables-save_beforemep) -eq 0 ]
+        if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -eq 0 -a $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
                 echo  -e "\e[101mSomething is wrong\033[0m"
                 echo
-                if [ $(grep -cvxFf iptables-save_aftermep iptables-save_beforemep) -ne 0 ]
+                if [ $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -ne 0 ]
                 then
                         echo -e "\t\033[31mMissing rules:\033[0m "
-                        RES1=$(grep -vxFf iptables-save_aftermep iptables-save_beforemep)
+                        RES1=$(grep -vxFf iptables-save_${suffix} iptables-save_beforemep)
                         display_lines "$RES1"
                         echo ""
                 fi
-                if [ $(grep -cvxFf iptables-save_beforemep iptables-save_aftermep) -ne 0 ]
+                if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -ne 0 ]
                 then
                         echo -e "\t\033[31mUnexpected rules:\033[0m "
-                        RES=$(grep -vxFf iptables-save_beforemep iptables-save_aftermep)
+                        RES=$(grep -vxFf iptables-save_beforemep iptables-save_${suffix})
                         display_lines "$RES"
                         echo ""
                 fi
@@ -240,24 +243,24 @@ then
     echo
 
     echo -e "\e[4;34m${bold}5) Netstat\033[0m"
-	if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_aftermep) -eq 0 ]
+	if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		if [ $(grep -cvxFf netstat-lnptu_aftermep netstat-lnptu_beforemep) -ne 0 ]
+		if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -ne 0 ]
 		then
 			echo -e "\t\033[31mMissing tcp/udp sockets:\033[0m "
-			RES=$(grep -vxFf netstat-lnptu_aftermep netstat-lnptu_beforemep)
+			RES=$(grep -vxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep)
 			echo -e "\tProto Local_address Foreign_address Program_name"
 			display_lines "$RES"
 			echo ""
 		fi
-		if [ $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_aftermep) -ne 0 ]
+		if [ $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -ne 0 ]
 		then
 			echo -e "\t\033[31mUnexpected tcp/udp sockets:\033[0m "
-                        RES1=$(grep -vxFf netstat-lnptu_beforemep netstat-lnptu_aftermep)
+                        RES1=$(grep -vxFf netstat-lnptu_beforemep netstat-lnptu_${suffix})
                         echo -e "\tProto Local_address Foreign_address Program_name"
                         display_lines "$RES1"
                         echo ""
@@ -266,25 +269,25 @@ then
     echo
 
     echo -e "\e[4;34m${bold}6) Filesystems\033[0m"	
-	if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_aftermep) -eq 0 ]
+	if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		if [ $(grep -cvxFf mountedfs_aftermep mountedfs_beforemep) -ne 0 ]
+		if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -ne 0 ]
 		then
 			echo -e "\t\033[31mMissing filesystems:\033[0m"
 			echo -e "\tFilesystem Type Size Mount_point"
-			RES=$(grep -vxFf mountedfs_aftermep mountedfs_beforemep)
+			RES=$(grep -vxFf mountedfs_${suffix} mountedfs_beforemep)
 			display_lines "$RES"
 			echo ""
 		fi
-		if [ $(grep -cvxFf mountedfs_beforemep mountedfs_aftermep) -ne 0 ]
+		if [ $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -ne 0 ]
 		then 
                         echo -e "\t\033[31mUnexpected filesystems:\033[0m"
                         echo -e "\tFilesystem Type Size Mount_point"
-                        RES1=$(grep -vxFf mountedfs_beforemep mountedfs_aftermep)
+                        RES1=$(grep -vxFf mountedfs_beforemep mountedfs_${suffix})
                         display_lines "$RES1"
                         echo ""
                 fi
@@ -292,24 +295,24 @@ then
     echo
 
 	echo -e "\e[4;34m${bold}7) Snapshot of the processes\033[0m"
-	if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_aftermep) -eq 0 ]
+	if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
 		echo  -e "\e[101mSomething is wrong\033[0m"
 		echo
-		if [ $(grep -cvxFf ps-ef_aftermep ps-ef_beforemep) -ne 0 ]
+		if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -ne 0 ]
 		then
 	        	echo -e "\t\033[31mMissing processes:\033[0m"
-			RES=$(grep -vxFf ps-ef_aftermep ps-ef_beforemep)
+			RES=$(grep -vxFf ps-ef_${suffix} ps-ef_beforemep)
 		        echo -e "\tUID CMD"
 		        display_lines "$RES"
 		        echo ""
 		fi
-		if [ $(grep -cvxFf ps-ef_beforemep ps-ef_aftermep) -ne 0 ]
+		if [ $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -ne 0 ]
 		then
 			echo -e "\t\033[31mUnexpected processes:\033[0m"
-			RES1=$(grep -vxFf ps-ef_beforemep ps-ef_aftermep)
+			RES1=$(grep -vxFf ps-ef_beforemep ps-ef_${suffix})
 			echo -e "\tUID CMD"
                         display_lines "$RES1"
                         echo ""
