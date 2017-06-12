@@ -35,6 +35,8 @@ TC_WITHE=$'\e[0;107;31m'
 #TC_WITHE=$'\e[0;47;31m'
 TC_GREEN=$'\e[0;42;30m'
 NBR_INV_FILE=7
+#
+echo "$COLS"
 
 ## la commande tabs necessite ncurse
 ##tabs 4
@@ -48,12 +50,12 @@ function display_lines {
 
 function display_banner {
         # tput bold
-        printf "\e[37;44;93m%*s \033[0m\n" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
+        printf "\e[37;44;93m%*s\033[0m" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
 
 center() {
   padding="$(printf '%0.1s' \ {1..500})"
-  printf '%*.*s %s %*.*s\n' 0 "$(((COLS-2-${#1})/2))" "$padding" "$1" 0 "$(((COLS-1-${#1})/2))" "$padding"
+  printf '%*.*s %s %*.*s' 0 "$(((COLS-2-${#1})/2))" "$padding" "$1" 0 "$(((COLS-1-${#1})/2))" "$padding"
 }
 
 [ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
