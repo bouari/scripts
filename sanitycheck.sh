@@ -18,6 +18,7 @@ then
 	
 fi
 
+
 HOMEUSER="/home/das_sysadmin"
 
 scriptexec=$(basename "$0")
@@ -30,8 +31,10 @@ bold=$(tput bold)
 normal=$(tput sgr0)
 COLS=$(tput cols)
 TC_RESET=$'\e[0m'
-#TC_WITHE=$'\e[0;107;31m'
-TC_WITHE=$'\e[0;47;31m'
+TC_WITHE=$'\e[0;107;31m'
+#TC_WITHE=$'\e[0;47;31m'
+TC_GREEN=$'\e[0;42;30m'
+NBR_INV_FILE=7
 
 ## la commande tabs necessite ncurse
 ##tabs 4
@@ -71,14 +74,35 @@ fi
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
 then
-	if [ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` -o $(find $HOMEUSER/MEP_`date +"%Y%m%d"` -name "*_beforemep" 2>/dev/null | wc -l) -eq 0 ]
+	if [ -d $HOMEUSER/MEP_`date +"%Y%m%d"` ]
 	then
-		echo -e "\033[31mNo inventory found\033[0m\n"
-		exit 1
+		if [ $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
+		then
+			echo -e "\033[31mNo inventory found 1\033[0m\n"
+			##echo $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l)
+			exit 1
+		fi
+	else
+		
+		if [ -d $HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"` ] 
+		then
+			cd $HOMEUSER && ln -s MEP_`date -d "-1 days" +"%Y%m%d"` MEP_`date +"%Y%m%d"` 
+			##echo "$HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"` will be used as your inventory"
+			##INVENTORY="$HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"`"
+		fi
+		if [ $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
+		then
+			echo $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l)
+			echo -e "\033[31mNo inventory found 2\033[0m\n"
+			exit 1
+		fi	
 	fi
 fi
 
-[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir -p $HOMEUSER/MEP_`date +"%Y%m%d"`
+if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
+then
+	[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir -p $HOMEUSER/MEP_`date +"%Y%m%d"`
+fi
 
 cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
 
@@ -172,7 +196,7 @@ df -hTP -x tmpfs -x devtmpfs | awk '{ print $1,$2,$3,$7 }' > mountedfs_${suffix}
 ##ps --ppid 2 -p 2 --deselect -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 ps --ppid 1 -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 
-if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -ge 8 ]
+if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -gt $NBR_INV_FILE ]
 then
 	find ./ -name "*_beforemep" -exec chattr +i {} \;
 	echo -e "\033[32mThe inventory has been taken and protected\033[0m"
@@ -182,12 +206,18 @@ if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck
 then
 	IFS=$'\n'
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "1) Services"
+	if [ -L $HOMEUSER/MEP_`date +"%Y%m%d"` ]
+	then
+		echo -n "${TC_GREEN}"
+		center "Your inventory is $(ls -l $HOMEUSER/MEP_`date +"%Y%m%d"` | sed 's|^.*/||g')"
+		echo ${TC_RESET}
+	fi
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		### [ $MONITPROC -eq 0 ] && echo -e "\033[31m  $MonitoringName is not running\033[0m"
 		[ $MONITPROC -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_${suffix})"
@@ -199,12 +229,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "2) Network interfaces"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "2) Network interfaces"
 	if [ $(grep -cvxFf ipa_beforemep ipa_${suffix}) -eq 0 -a $(grep -cvxFf ipa_${suffix} ipa_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		RES=$(grep -vxFf ipa_beforemep ipa_${suffix})
 		RES1=$(grep -vxFf ipa_${suffix} ipa_beforemep)
@@ -214,12 +244,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "3) Routes"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "3) Routes"
 	if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -eq 0 -a $(grep -cvxFf ipr_${suffix} ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ipr_${suffix} ipr_beforemep) -ne 0 ]
 		then
@@ -238,12 +268,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "4) Firewall (firewalld/iptables)"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "4) Firewall (firewalld/iptables)"
         if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -eq 0 -a $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
                 echo
                 if [ $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -ne 0 ]
                 then
@@ -262,12 +292,12 @@ then
         fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "5) TCP/UDP listening sockets (netstat)"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "5) TCP/UDP listening sockets (netstat)"
 	if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -ne 0 ]
 		then
@@ -288,12 +318,12 @@ then
 	fi
    	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "6) Filesystems"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "6) Filesystems"
 	if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -ne 0 ]
 		then
@@ -314,12 +344,12 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)*3/4)) "7) Daemons process"
+	printf "\e[100m%-*s\n\033[0m" $((($COLS)/4)) "7) Daemons process"
 	if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)*3/4)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/4)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -ne 0 ]
 		then
