@@ -168,7 +168,8 @@ ps --ppid 1 -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq 
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" -a $(find ./ -name "*_beforemep" | wc -l) -ge 8 ]
 then
-	echo -e "\033[32mThe inventory is taken\033[0m"
+	find ./ -name "*_beforemep" -exec chattr +i {} \;
+	echo -e "\033[32mThe inventory has been taken and protected\033[0m"
 fi
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
