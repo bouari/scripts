@@ -4,6 +4,12 @@
 # Author: Copyright © Bell Canada - Boualem Ouari <boualem.ouari@bell.ca>, Juin 2017
 #
 
+if [ $(uname) != "Linux" ]
+then
+	echo -e "\033[33mThis OS is not supported\033[0m"
+	exit 1
+fi
+
 quisuisje=$(whoami)
 if [ $quisuisje != "root" ]
 then
