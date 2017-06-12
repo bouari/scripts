@@ -210,12 +210,11 @@ then
 	then
 		echo -n "${TC_GREEN}"
 		center "Your inventory is $(ls -l $HOMEUSER/MEP_`date +"%Y%m%d"` | sed 's|^.*/||g')"
-		echo ${TC_RESET}
 	fi
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "1) Services"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
-		echo -e "\t\033[32mEverything is OK  \033[0m " 
+		echo -e "\t\033[32mEverything is OK\033[0m " 
 	else
 		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
 		echo
@@ -227,12 +226,14 @@ then
 			echo -e "\033[31m$RES\033[0m "
 		fi
 	fi
-    	echo
+	echo ${TC_RESET}
+    	##echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "2) Network interfaces"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "2) Network interfaces"
 	if [ $(grep -cvxFf ipa_beforemep ipa_${suffix}) -eq 0 -a $(grep -cvxFf ipa_${suffix} ipa_beforemep) -eq 0 ]
 	then
-		echo -e "\t\033[32mEverything is OK  \033[0m " 
+		#echo -e ${TC_RESET}
+		echo -e "\t\033[32mEverything is OK\033[0m" 
 	else
 		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
 		echo
@@ -244,7 +245,7 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "3) Routes"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "3) Routes"
 	if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -eq 0 -a $(grep -cvxFf ipr_${suffix} ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
@@ -268,7 +269,7 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "4) Firewall (firewalld/iptables)"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "4) Firewall (firewalld/iptables)"
         if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -eq 0 -a $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
@@ -292,7 +293,7 @@ then
         fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "5) TCP/UDP listening sockets (netstat)"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "5) TCP/UDP listening sockets (netstat)"
 	if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
@@ -318,7 +319,7 @@ then
 	fi
    	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "6) Filesystems"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "6) Filesystems"
 	if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
@@ -344,7 +345,7 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "7) Daemons process"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "7) Daemons process"
 	if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
