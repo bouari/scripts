@@ -1,7 +1,13 @@
 #! /bin/bash
 #
-# Tests de non-regression  
-# Author: Copyright © Bell Canada - Boualem Ouari <boualem.ouari@bell.ca>, Juin 2017
+# Tests de non-regression (sanitycheck.sh)
+# Version: 1.0
+# Author:  Copyright © Bell Canada - Boualem Ouari <boualem.ouari@bell.ca>, Juin 2017
+#
+# TODO:
+# Changer beforemep pour inventory 
+#	  aftermep pour verif
+# verif doit aussi pouvoir comparer à la ref
 #
 
 if [ $(uname) != "Linux" ]
@@ -15,9 +21,7 @@ if [ $quisuisje != "root" ]
 then
 	echo -e "\033[33mTu n'as pas les permissions pour executer ce programme\033[0m "
 	exit1 
-	
 fi
-
 
 HOMEUSER="/home/das_sysadmin"
 
@@ -35,9 +39,15 @@ TC_WITHE=$'\e[0;107;31m'
 #TC_WITHE=$'\e[0;47;31m'
 TC_GREEN=$'\e[0;42;30m'
 NBR_INV_FILE=7
+WorkingDir=MEP_`date +"%Y%m%d%H"`
+SameWorkingDir=MEP_`date -d "-4 hours" +"%Y%m%d%H"`
+WorkingDirChange="no"
 
-## la commande tabs necessite ncurse
-##tabs 4
+if [ "$scriptexec" == "sanitycheck-ref.sh" ]
+then
+	WorkingDir=REF_`date +"%Y%m%d%H"`
+	SameWorkingDir=REF_`date -d "-4 hours" +"%Y%m%d%H"`
+fi
 
 function display_lines {
 	for ligne in $(echo -n "$1")
@@ -59,6 +69,7 @@ center() {
 [ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
 [ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
 [ "$scriptexec" == "sanitycheck-afterreboot.sh" ] && suffix="afterreboot"
+[ "$scriptexec" == "sanitycheck-ref.sh" ] && suffix="ref"
 
 
 if [ -z "$suffix" ] 
@@ -69,42 +80,41 @@ then
 	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-beforemep.sh" "For taking inventory before making change or rebooting"
 	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-afterreboot.sh" "After rebooting without making changes"
 	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-aftermep.sh" "After making change and rebooting"
+	printf "\t\e[32m%-27s\033[0m : %-80s\n" "sanitycheck-ref.sh" "To make reference"
 	exit 1
 fi
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
 then
-	if [ -d $HOMEUSER/MEP_`date +"%Y%m%d"` ]
+	if [ -d $HOMEUSER/$WorkingDir ]
 	then
-		if [ $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
+		if [ $(find $HOMEUSER/$WorkingDir/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
 		then
-			echo -e "\033[31mNo inventory found 1\033[0m\n"
-			##echo $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l)
+			echo -e "\033[31mNo inventory found code1\033[0m\n"
 			exit 1
 		fi
 	else
-		
-		if [ -d $HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"` ] 
+		if [ -d $HOMEUSER/$SameWorkingDir ] 
 		then
-			cd $HOMEUSER && ln -s MEP_`date -d "-1 days" +"%Y%m%d"` MEP_`date +"%Y%m%d"` 
-			##echo "$HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"` will be used as your inventory"
-			##INVENTORY="$HOMEUSER/MEP_`date -d "-1 days" +"%Y%m%d"`"
+			##cd $HOMEUSER && ln -s $SameWorkingDir $WorkingDir 
+			WorkingDir=$SameWorkingDir
+			WorkingDirChange="yes"
 		fi
-		if [ $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
+		if [ $(find $HOMEUSER/$SameWorkingDir/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
 		then
-			echo $(find $HOMEUSER/MEP_`date +"%Y%m%d"`/ -name "*_beforemep" 2>/dev/null | wc -l)
-			echo -e "\033[31mNo inventory found 2\033[0m\n"
+			echo -e "\033[31mNo inventory found code2\033[0m\n"
 			exit 1
 		fi	
 	fi
 fi
 
-if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
+if [ "$scriptexec" == "sanitycheck-beforemep.sh" -o "$scriptexec" == "sanitycheck-ref.sh" ]
 then
-	[ ! -d $HOMEUSER/MEP_`date +"%Y%m%d"` ] && mkdir -p $HOMEUSER/MEP_`date +"%Y%m%d"`
+	[ ! -d $HOMEUSER/$WorkingDir ] && mkdir -p $HOMEUSER/$WorkingDir
+	[ "$scriptexec" == "sanitycheck-ref.sh" ] && cd $HOMEUSER && ln -sfn $WorkingDir REF
 fi
 
-cd $HOMEUSER/MEP_`date +"%Y%m%d"` || exit 1
+cd $HOMEUSER/$WorkingDir || exit 1
 
 
 if [ "$scriptexec" == "sanitycheck-beforemep.sh" ]
@@ -191,8 +201,6 @@ fi
 df -hTP -x tmpfs -x devtmpfs | awk '{ print $1,$2,$3,$7 }' > mountedfs_${suffix}
 
 ## Les process
-##ps -ef | egrep -v "\[.*\]" | awk '{ print $1,$8 }' | egrep -v "bash"  > ps-ef_${suffix}
-##ps -eo 'tty,user,comm' | grep ^? | grep -v [k]worker | awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 ##ps --ppid 2 -p 2 --deselect -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 ps --ppid 1 -o 'tty,user,comm' | grep ^? |  awk '{ print $2,$3 }' | sort | uniq > ps-ef_${suffix}
 
@@ -206,10 +214,11 @@ if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck
 then
 	IFS=$'\n'
 
-	if [ -L $HOMEUSER/MEP_`date +"%Y%m%d"` ]
+	###if [ -L $HOMEUSER/$WorkingDir ]
+	if [ $WorkingDirChange == "yes" ]
 	then
 		echo -n "${TC_GREEN}"
-		center "Your inventory is $(ls -l $HOMEUSER/MEP_`date +"%Y%m%d"` | sed 's|^.*/||g')"
+		center "Your inventory is $SameWorkingDir"
 		echo ${TC_RESET}
 	fi
 	printf "\e[100m%-*s\n\033[0m" $((($COLS)/5)) "1) Services"
