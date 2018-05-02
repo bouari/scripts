@@ -38,10 +38,11 @@ TC_RESET=$'\e[0m'
 TC_WITHE=$'\e[0;107;31m'
 #TC_WITHE=$'\e[0;47;31m'
 TC_GREEN=$'\e[0;42;30m'
-NBR_INV_FILE=7
+NBR_INV_FILE=8
 WorkingDir=MEP_`date +"%Y%m%d%H"`
 SameWorkingDir=MEP_`date -d "-4 hours" +"%Y%m%d%H"`
 WorkingDirChange="no"
+MyName=`hostname`
 
 if [ "$scriptexec" == "sanitycheck-ref.sh" ]
 then
@@ -60,11 +61,17 @@ function display_banner {
         # tput bold
         printf "\e[37;44;93m%*s \033[0m\n" $COLS "Tests de non-regression  |  Copyright © Bell Canada - Boualem Ouari, Juin 2017"
 }
+function display_banner1 {
+        # tput bold
+  	printf '\e[37;44;93m%-*s' $((COLS/2)) "${MyName} | Résultats des tests de non-regression" 
+  	printf '\e[37;44;93m%*s \033[0m\n' $((COLS/2)) "Copyright © Bell Canada - Boualem Ouari, Juin 2017"
+}
 
 center() {
   padding="$(printf '%0.1s' \ {1..500})"
   printf '%*.*s %s %*.*s\n' 0 "$(((COLS-2-${#1})/2))" "$padding" "$1" 0 "$(((COLS-1-${#1})/2))" "$padding"
 }
+
 
 [ "$scriptexec" == "sanitycheck-beforemep.sh" ] && suffix="beforemep"
 [ "$scriptexec" == "sanitycheck-aftermep.sh" ] && suffix="aftermep"
@@ -154,7 +161,7 @@ fi > stdr-services-status_${suffix}
 
 MONITPROC=$(ps -ef | grep -v grep | grep -c "${MonitoringProc}")
 
-display_banner
+display_banner1
 echo
 if [ "$MONITPROC" -gt 0 ]
 then
@@ -212,6 +219,7 @@ fi
 
 if [ "$scriptexec" == "sanitycheck-aftermep.sh" -o "$scriptexec" == "sanitycheck-afterreboot.sh" ]
 then
+	SummaryResult=0
 	IFS=$'\n'
 
 	###if [ -L $HOMEUSER/$WorkingDir ]
@@ -221,12 +229,13 @@ then
 		center "Your inventory is $SameWorkingDir"
 		echo ${TC_RESET}
 	fi
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "1) Services"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
+		((SummaryResult+=1))
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		### [ $MONITPROC -eq 0 ] && echo -e "\033[31m  $MonitoringName is not running\033[0m"
 		[ $MONITPROC -eq 0 ] && echo -e "\033[31m  $(grep [n]imbus stdr-services-status_${suffix})"
@@ -238,12 +247,13 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "2) Network interfaces"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "2) Network interfaces"
 	if [ $(grep -cvxFf ipa_beforemep ipa_${suffix}) -eq 0 -a $(grep -cvxFf ipa_${suffix} ipa_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
+		((SummaryResult+=1))
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		RES=$(grep -vxFf ipa_beforemep ipa_${suffix})
 		RES1=$(grep -vxFf ipa_${suffix} ipa_beforemep)
@@ -253,12 +263,13 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "3) Routes"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "3) Routes"
 	if [ $(grep -cvxFf ipr_beforemep ipr_${suffix}) -eq 0 -a $(grep -cvxFf ipr_${suffix} ipr_beforemep) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m " 
+		((SummaryResult+=1))
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ipr_${suffix} ipr_beforemep) -ne 0 ]
 		then
@@ -277,12 +288,13 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "4) Firewall (firewalld/iptables)"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "4) Firewall (firewalld/iptables)"
         if [ $(grep -cvxFf iptables-save_beforemep iptables-save_${suffix}) -eq 0 -a $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
+		((SummaryResult+=1))
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
                 echo
                 if [ $(grep -cvxFf iptables-save_${suffix} iptables-save_beforemep) -ne 0 ]
                 then
@@ -301,12 +313,13 @@ then
         fi
     	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "5) TCP/UDP listening sockets (netstat)"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "5) TCP/UDP listening sockets (netstat)"
 	if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -eq 0 -a $(grep -cvxFf netstat-lnptu_beforemep netstat-lnptu_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
+		((SummaryResult+=1))
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf netstat-lnptu_${suffix} netstat-lnptu_beforemep) -ne 0 ]
 		then
@@ -327,12 +340,13 @@ then
 	fi
    	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "6) Filesystems"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "6) Filesystems"
 	if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -eq 0 -a $(grep -cvxFf mountedfs_beforemep mountedfs_${suffix}) -eq 0 ]
 	then
 		echo -e "\t\033[32mEverything is OK  \033[0m "
+		((SummaryResult+=1))
 	else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf mountedfs_${suffix} mountedfs_beforemep) -ne 0 ]
 		then
@@ -353,12 +367,13 @@ then
 	fi
     	echo
 
-	printf "\e[100m%-*s\033[0m\n" $((($COLS)/5)) "7) Daemons process"
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "7) Daemons process"
 	if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -eq 0 -a $(grep -cvxFf ps-ef_beforemep ps-ef_${suffix}) -eq 0 ]
         then
                 echo -e "\t\033[32mEverything is OK  \033[0m "
+		((SummaryResult+=1))
         else
-		printf "\e[41m%-*s\033[0m" $((($COLS)/5)) "Something is wrong"
+		printf "\e[41m%-*s\033[0m" $((($COLS)/11)) "Something is wrong"
 		echo
 		if [ $(grep -cvxFf ps-ef_${suffix} ps-ef_beforemep) -ne 0 ]
 		then
@@ -377,7 +392,11 @@ then
                         echo ""
 		fi
 	fi
+	echo
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) ""
+	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "Summary result for ${MyName}: ${SummaryResult}/7 Success"
 	
 fi
 echo
-display_banner
+#display_banner
+#echo
