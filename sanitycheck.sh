@@ -20,10 +20,18 @@ quisuisje=$(whoami)
 if [ $quisuisje != "root" ]
 then
 	echo -e "\033[33mTu n'as pas les permissions pour executer ce programme\033[0m "
-	exit1 
+	exit 1 
 fi
 
-HOMEUSER="/home/das_sysadmin"
+if [ $# -eq 0 ]
+then
+        echo -e "\033[33mArgument manquant\033[0m "
+        exit 1
+fi
+
+
+
+HOMEUSER="/root"
 
 scriptexec=$(basename "$0")
 
@@ -39,15 +47,16 @@ TC_WITHE=$'\e[0;107;31m'
 #TC_WITHE=$'\e[0;47;31m'
 TC_GREEN=$'\e[0;42;30m'
 NBR_INV_FILE=8
-WorkingDir=MEP_`date +"%Y%m%d%H"`
-SameWorkingDir=MEP_`date -d "-4 hours" +"%Y%m%d%H"`
+##WorkingDir=MEP_`date +"%Y%m%d%H"`
+WorkingDir=MEP_$1
+#SameWorkingDir=MEP_`date -d "-10 hours" +"%Y%m%d%H"`
 WorkingDirChange="no"
 MyName=`hostname`
 
 if [ "$scriptexec" == "sanitycheck-ref.sh" ]
 then
-	WorkingDir=REF_`date +"%Y%m%d%H"`
-	SameWorkingDir=REF_`date -d "-4 hours" +"%Y%m%d%H"`
+	WorkingDir=REF_${1}
+#	SameWorkingDir=REF_`date -d "-4 hours" +"%Y%m%d%H"`
 fi
 
 function display_lines {
@@ -100,18 +109,18 @@ then
 			echo -e "\033[31mNo inventory found code1\033[0m\n"
 			exit 1
 		fi
-	else
-		if [ -d $HOMEUSER/$SameWorkingDir ] 
-		then
-			##cd $HOMEUSER && ln -s $SameWorkingDir $WorkingDir 
-			WorkingDir=$SameWorkingDir
-			WorkingDirChange="yes"
-		fi
-		if [ $(find $HOMEUSER/$SameWorkingDir/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
-		then
-			echo -e "\033[31mNo inventory found code2\033[0m\n"
-			exit 1
-		fi	
+#	else
+#		if [ -d $HOMEUSER/$SameWorkingDir ] 
+#		then
+#			##cd $HOMEUSER && ln -s $SameWorkingDir $WorkingDir 
+#			WorkingDir=$SameWorkingDir
+#			WorkingDirChange="yes"
+#		fi
+#		if [ $(find $HOMEUSER/$SameWorkingDir/ -name "*_beforemep" 2>/dev/null | wc -l) -lt $NBR_INV_FILE ]
+#		then
+#			echo -e "\033[31mNo inventory found code2\033[0m\n"
+#			exit 1
+#		fi	
 	fi
 fi
 
@@ -222,13 +231,13 @@ then
 	SummaryResult=0
 	IFS=$'\n'
 
-	###if [ -L $HOMEUSER/$WorkingDir ]
-	if [ $WorkingDirChange == "yes" ]
-	then
-		echo -n "${TC_GREEN}"
-		center "Your inventory is $SameWorkingDir"
-		echo ${TC_RESET}
-	fi
+#	###if [ -L $HOMEUSER/$WorkingDir ]
+#	if [ $WorkingDirChange == "yes" ]
+#	then
+#		echo -n "${TC_GREEN}"
+#		center "Your inventory is $SameWorkingDir"
+#		echo ${TC_RESET}
+#	fi
 	printf "\e[100m%-*s\033[0m\n" $((($COLS)/3)) "1) Services"
 	if [ $(grep -cvxFf stdr-services-status_beforemep stdr-services-status_${suffix}) -eq 0 -a $MONITPROC -ne 0 ]
 	then
